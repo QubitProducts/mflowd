@@ -1,30 +1,33 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func runPoller(sourceType string, source string, minfoChan chan *metricInfo) {
+func runPoller(ctx context.Context, sourceType string,
+	source string, minfoChan chan *metricInfo) error {
+
 	var err error
 	switch sourceType {
 	case "pubsub":
-		err = runPubSubPoller(source, minfoChan)
+		err = runPubSubPoller(ctx, source, minfoChan)
 		break
 	case "file":
-		err = runFilePoller(source, minfoChan)
+		err = runFilePoller(ctx, source, minfoChan)
 		break
 	default:
-		log.Errorf("Unknown source type: '%s'", sourceType)
-		os.Exit(-1)
+		err = fmt.Errorf("Unknown source type: '%s'", sourceType)
 	}
-	if err != nil {
-		log.Errorf("Failed to create poller: %v", err)
-		os.Exit(-1)
-	}
+
+	return err
 }
 
 func waitForever() {
@@ -51,13 +54,17 @@ func run(cmd *cobra.Command, args []string) {
 		messageChan:      make(chan promMessage),
 	}
 
+	ctx := context.Background()
 	minfoChan := make(chan *metricInfo)
-	go exposePrometheusEndpoint("/metrics", port, &pio)
-	go runPoller(sourceType, args[0], minfoChan)
-	go launchAggregator(minfoChan, &pio)
 
-	waitForever()
-	os.Exit(-1)
+	var g errgroup.Group
+	go exposePrometheusEndpoint("/metrics", port, &pio)
+	g.Go(runPoller(ctx, sourceType, args[0], minfoChan))
+	g.Go(launchAggregator(ctx, minfoChan, &pio))
+
+	if err = g.Wait(); err != nil {
+		log.Errorf("Error: %v", err)
+	}
 }
 
 func main() {

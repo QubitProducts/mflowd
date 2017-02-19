@@ -18,11 +18,6 @@ type promIO struct {
 	messageChan      chan promMessage
 }
 
-func resetRegistry(registry *prom.Registry) {
-	prom.DefaultRegisterer = registry
-	prom.DefaultGatherer = registry // not sure if I really need to touch it
-}
-
 func mflowPromHandler(pio *promIO) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Debug("Prometheus wants to scrape some metrics ...")

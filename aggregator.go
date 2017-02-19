@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
@@ -103,16 +104,18 @@ func aggregateMetric(actx *aggregatorContext, mInfo *metricInfo) error {
 	return nil
 }
 
-func newContext() *aggregatorContext {
+func newAggragatorContext() *aggregatorContext {
 	return &aggregatorContext{
 		registry: prom.NewRegistry(),
 		fnTable:  make(map[string]aggregationFn),
 	}
 }
 
-func launchAggregator(minfoChan chan *metricInfo, pio *promIO) {
+func launchAggregator(ctx context.Context, minfoChan chan *metricInfo,
+	pio *promIO) error {
+
 	log.Debug("Running aggregator ...")
-	actx := newContext()
+	actx := newAggragatorContext()
 	for {
 		select {
 		case mInfo, chanOk := <-minfoChan:
@@ -123,16 +126,17 @@ func launchAggregator(minfoChan chan *metricInfo, pio *promIO) {
 						mInfo.name, err)
 				}
 			}
-
 			break
 		case _, chanOk := <-pio.scrapeSignalChan:
 			if chanOk {
 				log.Debug("Sending aggregated metrics ...")
 				msg := promMessage{registry: actx.registry}
-				actx = newContext()
+				actx = newAggragatorContext()
 				pio.messageChan <- msg
 			}
 			break
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }

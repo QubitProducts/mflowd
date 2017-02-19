@@ -27,29 +27,36 @@ func parseProjectAndSubscriptionIDs(source string) (string, string, error) {
 	return items[0], items[1], nil
 }
 
-func runPubSubPoller(source string, minfoChan chan *metricInfo) error {
+func runPubSubPoller(ctx context.Context, source string,
+	minfoChan chan *metricInfo) error {
+
 	projectID, subID, err := parseProjectAndSubscriptionIDs(source)
 	if err != nil {
 		return err
 	}
 
 	sub := createPubSubClient(projectID).Subscription(subID)
-	it, err := sub.Pull(context.Background())
+	it, err := sub.Pull(ctx)
 	if err != nil {
 		return err
 	}
 
 	defer it.Stop()
 	for {
-		msg, err := it.Next()
-		if err != nil {
-			// should we handle it in a more graceful way?
-			log.Fatalf("Failed to read next pub/sub message: %v", err)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			msg, err := it.Next()
+			if err != nil {
+				// should we handle it in a more graceful way?
+				log.Errorf("Failed to read next pub/sub message: %v", err)
+			}
+			go func() {
+				log.Debugf("Got new message: %v", string(msg.Data))
+				handleIncomingMessage(minfoChan, msg.Data, msg.PublishTime.Unix())
+				msg.Done(true) // XXX: should I ack if an error has happened?
+			}()
 		}
-		go func() {
-			log.Debugf("Got new message: %v", string(msg.Data))
-			handleIncomingMessage(minfoChan, msg.Data, msg.PublishTime.Unix())
-			msg.Done(true) // XXX: should I ack if an error has happened?
-		}()
 	}
 }

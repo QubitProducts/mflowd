@@ -1,5 +1,5 @@
-hash: 282d9159eeeb598b34505132774cb3d4a339cd5e760ceaf2a8995c4df72c6d6f
-updated: 2017-01-12T17:16:20.685199525Z
+hash: 82c55c9e09fb9120ff2f78f9370d6cf5ff85cb224659899590430218201af4e1
+updated: 2017-02-19T17:50:36.558402673Z
 imports:
 - name: cloud.google.com/go
   version: c116c7972ec94f148459a304d07a67ecbc770d4b
@@ -35,6 +35,7 @@ imports:
   version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
@@ -48,7 +49,7 @@ imports:
 - name: github.com/prometheus/procfs
   version: fcdb11ccb4389efb1b210b7ffb623ab71c5fdd60
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/spf13/cobra
   version: 1dd5ff2e11b6dca62fdcb275eb804b94607d8b06
 - name: github.com/spf13/pflag
@@ -71,6 +72,10 @@ imports:
   - internal
   - jws
   - jwt
+- name: golang.org/x/sync
+  version: 86ddc858aa39d0f6cccccd733e482ddc52b852e9
+  subpackages:
+  - errgroup
 - name: golang.org/x/sys
   version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
