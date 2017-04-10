@@ -1,18 +1,18 @@
-package: github.com/qubitdigital/mflowd
+package: github.com/QubitProducts/mflowd
 import:
-- package: github.com/spf13/cobra
-- package: google.golang.org/cloud
-  version: ^0.6.0
-  subpackages:
-  - pubsub
 - package: cloud.google.com/go
-  version: ^0.6.0
   subpackages:
   - pubsub
 - package: github.com/Sirupsen/logrus
-  version: ^0.11.0
 - package: github.com/prometheus/client_golang
-  version: ^0.8.0
+  subpackages:
+  - prometheus
+  - prometheus/promhttp
+- package: github.com/spf13/cobra
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
 - package: golang.org/x/sync
   subpackages:
   - errgroup
+- package: github.com/google/go-genproto

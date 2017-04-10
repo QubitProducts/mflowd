@@ -10,7 +10,7 @@ import (
 )
 
 type promMessage struct {
-	registry *prom.Registry
+	gatherer prom.Gatherer
 }
 
 type promIO struct {
@@ -24,7 +24,7 @@ func mflowPromHandler(pio *promIO) http.HandlerFunc {
 		pio.scrapeSignalChan <- true
 		pmsg := <-pio.messageChan
 
-		promhttp.HandlerFor(pmsg.registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
+		promhttp.HandlerFor(pmsg.gatherer, promhttp.HandlerOpts{}).ServeHTTP(w, r)
 	}
 }
 

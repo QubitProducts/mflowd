@@ -59,8 +59,12 @@ func run(cmd *cobra.Command, args []string) {
 
 	var g errgroup.Group
 	go exposePrometheusEndpoint("/metrics", port, &pio)
-	g.Go(runPoller(ctx, sourceType, args[0], minfoChan))
-	g.Go(launchAggregator(ctx, minfoChan, &pio))
+	g.Go(func() error {
+		return runPoller(ctx, sourceType, args[0], minfoChan)
+	})
+	g.Go(func() error {
+		return launchAggregator(ctx, minfoChan, &pio)
+	})
 
 	if err = g.Wait(); err != nil {
 		log.Errorf("Error: %v", err)

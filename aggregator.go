@@ -23,7 +23,7 @@ func metricHelp(minfo *metricInfo) string {
 	return "some-shit-here"
 }
 
-func makeSumAggregation(registry *prom.Registry,
+func makeSumAggregation(registerer prom.Registerer,
 	mInfo *metricInfo) aggregationFn {
 
 	ops := prom.CounterOpts{
@@ -31,7 +31,7 @@ func makeSumAggregation(registry *prom.Registry,
 		Help: metricHelp(mInfo),
 	}
 	ctr := prom.NewCounterVec(ops, mInfo.labelNames)
-	if err := registry.Register(ctr); err != nil {
+	if err := registerer.Register(ctr); err != nil {
 		log.Warnf("Failed to create a counter '%s': %v", mInfo.name, err)
 	}
 
@@ -42,7 +42,7 @@ func makeSumAggregation(registry *prom.Registry,
 	}
 }
 
-func makeGaugeAggregation(registry *prom.Registry,
+func makeGaugeAggregation(registerer prom.Registerer,
 	mInfo *metricInfo) aggregationFn {
 
 	luTs := mInfo.timestamp
@@ -51,7 +51,7 @@ func makeGaugeAggregation(registry *prom.Registry,
 		Help: metricHelp(mInfo),
 	}
 	gm := prom.NewGaugeVec(ops, mInfo.labelNames)
-	if err := registry.Register(gm); err != nil {
+	if err := registerer.Register(gm); err != nil {
 		log.Warnf("Failed to create a gauge '%s': %v", mInfo.name, err)
 	}
 
@@ -65,17 +65,17 @@ func makeGaugeAggregation(registry *prom.Registry,
 	}
 }
 
-func makeAggregationFunction(registry *prom.Registry,
+func makeAggregationFunction(registerer prom.Registerer,
 	mInfo *metricInfo) (aggregationFn, error) {
 
 	var err error
 	var afn aggregationFn
 	switch mInfo.aggrType {
 	case "sum":
-		afn = makeSumAggregation(registry, mInfo)
+		afn = makeSumAggregation(registerer, mInfo)
 		log.Debugf("New SUM aggregation: %s", mInfo.name)
 	case "mean":
-		afn = makeGaugeAggregation(registry, mInfo)
+		afn = makeGaugeAggregation(registerer, mInfo)
 		log.Debugf("New MEAN aggregation: %s", mInfo.name)
 	default:
 		err = fmt.Errorf("Unknown aggregation type: '%s'", mInfo.aggrType)
@@ -85,15 +85,16 @@ func makeAggregationFunction(registry *prom.Registry,
 }
 
 type aggregatorContext struct {
-	registry *prom.Registry
-	fnTable  map[string]aggregationFn
+	registerer prom.Registerer
+	gatherer   prom.Gatherer
+	fnTable    map[string]aggregationFn
 }
 
 func aggregateMetric(actx *aggregatorContext, mInfo *metricInfo) error {
 	afn, ok := actx.fnTable[mInfo.name]
 	if !ok {
 		var err error
-		afn, err = makeAggregationFunction(actx.registry, mInfo)
+		afn, err = makeAggregationFunction(actx.registerer, mInfo)
 		if err != nil {
 			return err
 		}
@@ -104,18 +105,32 @@ func aggregateMetric(actx *aggregatorContext, mInfo *metricInfo) error {
 	return nil
 }
 
-func newAggragatorContext() *aggregatorContext {
-	return &aggregatorContext{
-		registry: prom.NewRegistry(),
-		fnTable:  make(map[string]aggregationFn),
+func newAggregatorContext(registry *prom.Registry) *aggregatorContext {
+	var ctx aggregatorContext
+	if registry == nil {
+		ctx.gatherer = prom.DefaultGatherer
+		ctx.registerer = prom.DefaultRegisterer
+	} else {
+		registry = prom.NewRegistry()
+		ctx.gatherer = registry
+		ctx.registerer = registry
 	}
+
+	ctx.fnTable = make(map[string]aggregationFn)
+	return &ctx
 }
 
 func launchAggregator(ctx context.Context, minfoChan chan *metricInfo,
 	pio *promIO) error {
 
+	return launchAggregatorWithCustomRegistry(ctx, minfoChan, pio, nil)
+}
+
+func launchAggregatorWithCustomRegistry(ctx context.Context,
+	minfoChan chan *metricInfo, pio *promIO, registry *prom.Registry) error {
+
 	log.Debug("Running aggregator ...")
-	actx := newAggragatorContext()
+	actx := newAggregatorContext(registry)
 	for {
 		select {
 		case mInfo, chanOk := <-minfoChan:
@@ -130,8 +145,7 @@ func launchAggregator(ctx context.Context, minfoChan chan *metricInfo,
 		case _, chanOk := <-pio.scrapeSignalChan:
 			if chanOk {
 				log.Debug("Sending aggregated metrics ...")
-				msg := promMessage{registry: actx.registry}
-				actx = newAggragatorContext()
+				msg := promMessage{gatherer: actx.gatherer}
 				pio.messageChan <- msg
 			}
 			break

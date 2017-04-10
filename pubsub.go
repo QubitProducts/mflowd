@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
+	"cloud.google.com/go/pubsub"
 	log "github.com/Sirupsen/logrus"
-	"google.golang.org/cloud/pubsub"
+	"golang.org/x/net/context"
 )
 
 func createPubSubClient(projectID string) *pubsub.Client {
@@ -36,27 +36,21 @@ func runPubSubPoller(ctx context.Context, source string,
 	}
 
 	sub := createPubSubClient(projectID).Subscription(subID)
-	it, err := sub.Pull(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer it.Stop()
-	for {
+	cctx, cancel := context.WithCancel(ctx)
+	err = sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			cancel()
+			msg.Nack()
+			return
 		default:
-			msg, err := it.Next()
-			if err != nil {
-				// should we handle it in a more graceful way?
-				log.Errorf("Failed to read next pub/sub message: %v", err)
-			}
 			go func() {
 				log.Debugf("Got new message: %v", string(msg.Data))
 				handleIncomingMessage(minfoChan, msg.Data, msg.PublishTime.Unix())
-				msg.Done(true) // XXX: should I ack if an error has happened?
+				msg.Ack() // XXX: should I ack if an error has happened?
 			}()
 		}
-	}
+	})
+
+	return err
 }
