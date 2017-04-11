@@ -98,13 +98,13 @@ func TestAggregationLabels(t *testing.T) {
 	assert.Equal(t, 2.0, *m.Metric[0].Counter.Value)
 	assert.Equal(t, 4.0, *m.Metric[1].Counter.Value)
 
-	assertThatMetricHasLabels(t, []string{"one:1", "two:2", "three:3"},
+	assertThatLabelsAreEqual(t, []string{"one:1", "two:2", "three:3"},
 		m.Metric[0].Label)
-	assertThatMetricHasLabels(t, []string{"one:3", "two:2", "three:1"},
+	assertThatLabelsAreEqual(t, []string{"one:3", "two:2", "three:1"},
 		m.Metric[1].Label)
 }
 
-func TestSameNameDifferentMetricTypes(t *testing.T) {
+func TestAggregationSameNameDifferentMetricTypes(t *testing.T) {
 	registry := prom.NewRegistry()
 	actx := newAggregatorContext(registry)
 
@@ -128,6 +128,18 @@ func TestSameNameDifferentMetricTypes(t *testing.T) {
 	assert.Equal(t, 1, len(m.Metric))
 	assert.Equal(t, dto.MetricType_COUNTER, *m.Type)
 	assert.Equal(t, 1.0, *m.Metric[0].Counter.Value)
+}
+
+func TestAggregationWithUnknownType(t *testing.T) {
+	registry := prom.NewRegistry()
+	actx := newAggregatorContext(registry)
+
+	minfo := makeMetricInfo("same_name", "some_unknown_type", 1.0)
+	err := aggregateMetric(actx, minfo)
+	if err == nil {
+		t.Log("It should not be possible to aggregate metric with unknown type")
+		t.Fail()
+	}
 }
 
 func makeMetricInfo(name string, aggrType string, value float64) *metricInfo {
@@ -155,7 +167,7 @@ func doAggregateMetric(t *testing.T, actx *aggregatorContext,
 	}
 }
 
-func assertThatMetricHasLabels(t *testing.T, expected []string,
+func assertThatLabelsAreEqual(t *testing.T, expected []string,
 	labels []*dto.LabelPair) {
 
 	assert.Equal(t, len(expected), len(labels))

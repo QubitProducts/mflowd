@@ -49,13 +49,14 @@ func toPrometheusLabels(labelNameValuePairs []labelNameValue) prom.Labels {
 
 func toMetricInfo(event *metricUpdateEvent, ts int64) (*metricInfo, error) {
 	nameItems := strings.Split(event.Name, "_")
-	if len(nameItems) != 2 {
+	l := len(nameItems)
+	if l < 2 {
 		return nil, fmt.Errorf("Metric %s does not have type suffix", event.Name)
 	}
 
 	return &metricInfo{
-		name:       nameItems[0],
-		aggrType:   nameItems[1],
+		name:       strings.Join(nameItems[:l-1], "_"),
+		aggrType:   nameItems[l-1],
 		value:      event.Value,
 		labelNames: sortedLabelNames(event.LabelNameValuePairs),
 		labels:     toPrometheusLabels(event.LabelNameValuePairs),
