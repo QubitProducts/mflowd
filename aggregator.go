@@ -19,8 +19,13 @@ type metricInfo struct {
 
 type aggregationFn func(*metricInfo)
 
+type aggregation struct {
+	afn   aggregationFn
+	atype string
+}
+
 func metricHelp(minfo *metricInfo) string {
-	return "some-shit-here"
+	return "void"
 }
 
 func makeSumAggregation(registerer prom.Registerer,
@@ -65,43 +70,55 @@ func makeGaugeAggregation(registerer prom.Registerer,
 	}
 }
 
-func makeAggregationFunction(registerer prom.Registerer,
-	mInfo *metricInfo) (aggregationFn, error) {
+func makeAggregation(registerer prom.Registerer,
+	mInfo *metricInfo) (*aggregation, error) {
 
 	var err error
 	var afn aggregationFn
 	switch mInfo.aggrType {
-	case "sum":
+	case "counter":
 		afn = makeSumAggregation(registerer, mInfo)
-		log.Debugf("New SUM aggregation: %s", mInfo.name)
-	case "mean":
+		log.Debugf("New COUNTER aggregation: %s", mInfo.name)
+	case "gauge":
 		afn = makeGaugeAggregation(registerer, mInfo)
-		log.Debugf("New MEAN aggregation: %s", mInfo.name)
+		log.Debugf("New GAUGE aggregation: %s", mInfo.name)
 	default:
 		err = fmt.Errorf("Unknown aggregation type: '%s'", mInfo.aggrType)
 	}
+	if err != nil {
+		return nil, err
+	}
 
-	return afn, err
+	return &aggregation{
+		afn:   afn,
+		atype: mInfo.aggrType,
+	}, nil
 }
 
 type aggregatorContext struct {
 	registerer prom.Registerer
 	gatherer   prom.Gatherer
-	fnTable    map[string]aggregationFn
+	aggrTable  map[string]*aggregation
 }
 
 func aggregateMetric(actx *aggregatorContext, mInfo *metricInfo) error {
-	afn, ok := actx.fnTable[mInfo.name]
+	aggr, ok := actx.aggrTable[mInfo.name]
 	if !ok {
 		var err error
-		afn, err = makeAggregationFunction(actx.registerer, mInfo)
+		aggr, err = makeAggregation(actx.registerer, mInfo)
 		if err != nil {
 			return err
 		}
-		actx.fnTable[mInfo.name] = afn
+
+		actx.aggrTable[mInfo.name] = aggr
+	}
+	if aggr.atype != mInfo.aggrType {
+		return fmt.Errorf("Can't aggregate metric \"%s\" type \"%s\" as it is"+
+			" already regisited with different type \"%s\"", mInfo.name,
+			mInfo.aggrType, aggr.atype)
 	}
 
-	afn(mInfo)
+	aggr.afn(mInfo)
 	return nil
 }
 
@@ -111,12 +128,11 @@ func newAggregatorContext(registry *prom.Registry) *aggregatorContext {
 		ctx.gatherer = prom.DefaultGatherer
 		ctx.registerer = prom.DefaultRegisterer
 	} else {
-		registry = prom.NewRegistry()
 		ctx.gatherer = registry
 		ctx.registerer = registry
 	}
 
-	ctx.fnTable = make(map[string]aggregationFn)
+	ctx.aggrTable = make(map[string]*aggregation)
 	return &ctx
 }
 
