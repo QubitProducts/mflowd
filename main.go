@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -30,10 +29,27 @@ func runPoller(ctx context.Context, sourceType string,
 	return err
 }
 
-func waitForever() {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	wg.Wait()
+func runTheDaemon(source string, sourceType string, port int) {
+	pio := promIO{
+		scrapeSignalChan: make(chan bool),
+		messageChan:      make(chan promMessage),
+	}
+
+	ctx := context.Background()
+	minfoChan := make(chan *metricInfo)
+
+	var g errgroup.Group
+	go exposePrometheusEndpoint("/metrics", port, &pio)
+	g.Go(func() error {
+		return runPoller(ctx, sourceType, source, minfoChan)
+	})
+	g.Go(func() error {
+		return launchAggregator(ctx, minfoChan, &pio)
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Errorf("Error: %v", err)
+	}
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -49,26 +65,7 @@ func run(cmd *cobra.Command, args []string) {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	pio := promIO{
-		scrapeSignalChan: make(chan bool),
-		messageChan:      make(chan promMessage),
-	}
-
-	ctx := context.Background()
-	minfoChan := make(chan *metricInfo)
-
-	var g errgroup.Group
-	go exposePrometheusEndpoint("/metrics", port, &pio)
-	g.Go(func() error {
-		return runPoller(ctx, sourceType, args[0], minfoChan)
-	})
-	g.Go(func() error {
-		return launchAggregator(ctx, minfoChan, &pio)
-	})
-
-	if err = g.Wait(); err != nil {
-		log.Errorf("Error: %v", err)
-	}
+	runTheDaemon(args[0], sourceType, port)
 }
 
 func main() {
@@ -80,7 +77,7 @@ func main() {
 
 	cmd.PersistentFlags().StringP("source", "s", "",
 		"Type of metric update event messages source."+
-			" Can be either 'punsub' or 'file'")
+			" Can be either 'pubsub' or 'file'")
 	cmd.PersistentFlags().IntP("port", "p", 6221,
 		"Port to expose for prometheus to scrap the metrics")
 	cmd.PersistentFlags().BoolP("verbose", "v", false,

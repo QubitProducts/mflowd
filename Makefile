@@ -1,6 +1,8 @@
 .PHONY: bootstrap mflowd test clean
 
-bootstrap:
+all: mflowd
+
+install:
 	glide install
 
 mflowd:

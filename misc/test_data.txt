@@ -1,0 +1,6 @@
+{"name":"avgNumEvents_gauge","labelNameValuePairs":[{"name":"userId","value":"user1"}],"value":1.0}
+{"name":"numApiCalls_counter","labelNameValuePairs":[{"name":"userId","value":"user1"}],"value":15.0}
+{"name":"avgNumEvents_gauge","labelNameValuePairs":[{"name":"userId","value":"user1"}],"value":1.0}
+{"name":"avgNumEvents_gauge","labelNameValuePairs":[{"name":"userId","value":"user2"}],"value":2.875}
+{"name":"numApiCalls_counter","labelNameValuePairs":[{"name":"userId","value":"user1"}],"value":99.0}
+{"name":"avgLatency_gauge","labelNameValuePairs":[{"name":"userId","value":"user1"}],"value":666638.0}
