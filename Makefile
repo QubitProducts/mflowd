@@ -1,8 +1,8 @@
-.PHONY: bootstrap mflowd test clean
+.PHONY: mflowd test clean
 
 all: mflowd
 
-install:
+bootstrap:
 	glide install
 
 mflowd:
@@ -10,6 +10,12 @@ mflowd:
 
 test:
 	go test
+
+vendor:
+	make bootstrap
+
+docker: vendor
+	docker build -t mflowd .
 
 clean:
 	go clean

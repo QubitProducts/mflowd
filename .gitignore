@@ -1,3 +1,4 @@
 mflowd
 vendor
 *.iml
+.env

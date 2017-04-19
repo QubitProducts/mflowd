@@ -1,0 +1,16 @@
+version: "3.0"
+services:
+  mflowd:
+    image: "mflowd:latest"
+    ports:
+      - "6666:6666"
+    restart: "always"
+    depends_on:
+        - prometheus
+    environment:
+        - MFLOWD_SUB=${MFLOWD_SUB}
+        - MFLOWD_VERBOSE=${MFLOWD_VERBOSE}
+  prometheus:
+    image: "prom/prometheus"
+    volumes:
+      - ./misc:/etc/prometheus
