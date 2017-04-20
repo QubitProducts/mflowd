@@ -57,7 +57,6 @@ func runTheDaemon(source string, sourceType string, port int) {
 		return nil
 	})
 
-	log.Info("-----")
 	if err := g.Wait(); err != nil {
 		log.Errorf("Error: %v", err)
 	}
