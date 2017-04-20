@@ -28,13 +28,6 @@ func mflowPromHandler(pio *promIO) http.HandlerFunc {
 	}
 }
 
-func makePromIO() *promIO {
-	return &promIO{
-		scrapeSignalChan: make(chan bool),
-		messageChan:      make(chan promMessage),
-	}
-}
-
 func exposePrometheusEndpoint(endpoint string, port int, pio *promIO) {
 	log.Debugf("Exposing a Prometheus endpoint at %d", port)
 	http.HandleFunc(endpoint, mflowPromHandler(pio))
