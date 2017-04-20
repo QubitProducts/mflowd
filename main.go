@@ -25,7 +25,9 @@ func runPoller(ctx context.Context, sourceType string,
 	default:
 		err = fmt.Errorf("Unknown source type: '%s'", sourceType)
 	}
-
+	if err != nil {
+		ctx.Done()
+	}
 	return err
 }
 
@@ -35,18 +37,27 @@ func runTheDaemon(source string, sourceType string, port int) {
 		messageChan:      make(chan promMessage),
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	minfoChan := make(chan *metricInfo)
 
 	var g errgroup.Group
 	go exposePrometheusEndpoint("/metrics", port, &pio)
 	g.Go(func() error {
-		return runPoller(ctx, sourceType, source, minfoChan)
+		if err := runPoller(ctx, sourceType, source, minfoChan); err != nil {
+			cancel()
+			return err
+		}
+		return nil
 	})
 	g.Go(func() error {
-		return launchAggregator(ctx, minfoChan, &pio)
+		if err := launchAggregator(ctx, minfoChan, &pio); err != nil {
+			cancel()
+			return err
+		}
+		return nil
 	})
 
+	log.Info("-----")
 	if err := g.Wait(); err != nil {
 		log.Errorf("Error: %v", err)
 	}

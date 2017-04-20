@@ -10,7 +10,11 @@ services:
     environment:
         - MFLOWD_SUB=${MFLOWD_SUB}
         - MFLOWD_VERBOSE=${MFLOWD_VERBOSE}
+    volumes:
+      - ./gcp:/etc/mflowd
   prometheus:
     image: "prom/prometheus"
     volumes:
       - ./misc:/etc/prometheus
+    ports:
+      - "9090:9090"

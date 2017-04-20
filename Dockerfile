@@ -1,6 +1,8 @@
 FROM golang:1.7.5-alpine
 
+
 RUN mkdir -p /go/src/github.com/QubitProducts/mflowd
+RUN mkdir -p /etc/mflowd
 WORKDIR /go/src/github.com/QubitProducts/mflowd
 
 ADD . /go/src/github.com/QubitProducts/mflowd

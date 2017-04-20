@@ -20,23 +20,29 @@ func createPubSubClient(projectID string) *pubsub.Client {
 
 func parseProjectAndSubscriptionIDs(source string) (string, string, error) {
 	items := strings.Split(source, "/")
-	if len(items) != 2 {
+	// Usually subscription URI looks like this:
+	// projects/<projectName>/subscriptions/<subscriptionName>
+	if len(items) != 4 {
 		return "", "", fmt.Errorf("Can not parse pubsub source: %s", source)
 	}
 
-	return items[0], items[1], nil
+	return items[1], items[3], nil
 }
 
 func runPubSubPoller(ctx context.Context, source string,
 	minfoChan chan *metricInfo) error {
+	cctx, cancel := context.WithCancel(ctx)
 
 	projectID, subID, err := parseProjectAndSubscriptionIDs(source)
 	if err != nil {
+		cancel()
 		return err
 	}
 
+	log.Debugf("Polling a pub/sub subscription %s of project %s ...",
+		subID, projectID)
+
 	sub := createPubSubClient(projectID).Subscription(subID)
-	cctx, cancel := context.WithCancel(ctx)
 	err = sub.Receive(cctx, func(ctx context.Context, msg *pubsub.Message) {
 		select {
 		case <-ctx.Done():
