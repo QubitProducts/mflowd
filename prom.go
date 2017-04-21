@@ -28,8 +28,14 @@ func mflowPromHandler(pio *promIO) http.HandlerFunc {
 	}
 }
 
-func exposePrometheusEndpoint(endpoint string, port int, pio *promIO) {
+func mflowStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("cogito ergo sum\n"))
+}
+
+func exposePrometheusEndpoint(port int, pio *promIO) {
 	log.Debugf("Exposing a Prometheus endpoint at %d", port)
-	http.HandleFunc(endpoint, mflowPromHandler(pio))
+	http.HandleFunc("/metrics", mflowPromHandler(pio))
+	http.HandleFunc("/status", mflowStatusHandler)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

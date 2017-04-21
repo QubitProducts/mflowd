@@ -41,7 +41,7 @@ func runTheDaemon(source string, sourceType string, port int) {
 	minfoChan := make(chan *metricInfo)
 
 	var g errgroup.Group
-	go exposePrometheusEndpoint("/metrics", port, &pio)
+	go exposePrometheusEndpoint(port, &pio)
 	g.Go(func() error {
 		if err := runPoller(ctx, sourceType, source, minfoChan); err != nil {
 			cancel()
