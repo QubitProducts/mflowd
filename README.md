@@ -1,6 +1,6 @@
 # Metrics Flow Daemon ![Build Status](https://travis-ci.org/QubitProducts/mflowd.svg) ![Go Report](https://goreportcard.com/badge/github.com/QubitProducts/mflowd)
 
-It is a small daemon that aggregates custom monitoring metrics collected from Google Dataflow workers that use [metrics-flow](https://github.com/QubitProducts/metics-flow) library and exposes them to [Prometheus](https://prometheus.io/).
+It is a small daemon that aggregates custom monitoring metrics collected from Google Dataflow workers that use [metrics-flow](https://github.com/QubitProducts/metrics-flow) library and exposes them to [Prometheus](https://prometheus.io/).
 
 # How it works
 
