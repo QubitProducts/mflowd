@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 const testPort = 9889
@@ -23,6 +24,8 @@ func TestAllComponentsWorkTogether(t *testing.T) {
 		t.Fail()
 	}
 
+	// give the daemon some time to start up
+	time.Sleep(1 * time.Second)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
