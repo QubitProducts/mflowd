@@ -1,4 +1,4 @@
-FROM golang:1.7.5-alpine
+FROM golang:1.10-alpine
 
 
 RUN mkdir -p /go/src/github.com/QubitProducts/mflowd
