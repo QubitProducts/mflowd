@@ -1,0 +1,33 @@
+project:
+  metadata:
+    name: mflowd
+    version: "0.1"
+    staging:
+      project: qubit-apps-eu-stg
+      cluster: qubernetes
+      pubsub: projects/qubit-parkour-staging/subscriptions/mflowd
+    production:
+      project: qubit-apps-eu-prod
+      cluster: qubernetes
+      pubsub: projects/qubit-parkour-production/subscriptions/mflowd
+
+kubernetes:
+  project: "{{ project }}"
+  cluster: "{{ cluster }}"
+  cpus: 0.1
+  mem: 128
+  cmd:
+  - /go/bin/mflowd
+  args:
+  - -s
+  - pubsub
+  - "{{ pubsub }}"
+  env:
+    GOOGLE_APPLICATION_CREDENTIALS: "/config/gcloud-keyfile.json"
+  ports:
+  - name: http
+    containerPort: 6221
+  livenessProbe:
+    httpGet:
+      path: /metrics
+      port: http
