@@ -29,7 +29,7 @@ the results into a Google Pub/Sub topic. The metrics flow daemon polls a subscri
 
 ## Build it from scratch
 
-1. Make sure you have `glide` installed (if you don't know how to install it, follow [this](https://github.com/Masterminds/glide#install) link)
+1. Make sure you have `dep` installed (if you don't know how to install it, follow [this](https://github.com/golang/dep#installation) link)
 2. `make bootstrap`
 3. `make test`
 4. `make mflowd`
