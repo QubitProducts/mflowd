@@ -3,7 +3,7 @@
 all: mflowd
 
 bootstrap:
-	glide install
+	dep ensure -v
 
 mflowd:
 	go build
